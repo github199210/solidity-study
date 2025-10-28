@@ -7,47 +7,47 @@ pragma solidity ^0.8.13;
 // 一个getVotes函数，返回某个候选人的得票数
 // 一个resetVotes函数，重置所有候选人的得票数
 contract Voting{ 
-    // 候选人得票数及当前这一轮投票版本
+    // 候选人得票数、这一轮投票版本、给指定候选人投过票的人
     struct Candidate {
-        bytes32 name;
         uint value;
         uint version;
     }
-    Candidate[] candidates;
+    //当前投票版本
+    uint public currentVersion;
+    mapping (bytes32=>Candidate) public candidates;
+    //当前地址是否投过票
+    mapping(address=>bool) public voter;
+
+    // 定义modifier
+    modifier hasVoted {
+        require(!voter[msg.sender],'The voter already voted.'); // 检查调用者是否投过票
+        _; 
+    }
     // 输入候选人姓名
     constructor(bytes32[] memory _candidateNames){
+        require(_candidateNames.length > 0, "Empty candidate");
         for (uint i=0; i < _candidateNames.length; i++) {
-            candidates.push(Candidate({
-                name:_candidateNames[i],
+            candidates[_candidateNames[i]]=Candidate({
                 value:0,
                 version:0
-            }));
+            });
         }
     }
-    // 投票人姓名、是否投过票
-    struct Voter{
-        bool voted;
-    }
-    mapping(bytes32=>Voter) public voters;
-    uint public currentVersion;
-
-    function vote(bytes32 _name) public {
-        if(candidate[_name].version!=currentVersion){
-            candidate[_name].version=currentVersion;
-            candidate[_name].value=0;
+  
+    function vote(bytes32 _name) public hasVoted {
+        if(candidates[_name].version!=currentVersion){
+            candidates[_name].version=currentVersion;
+            candidates[_name].value=0;
         }
-        voters.push(Voter({
-                name:_name,
-                voted:true
-            }));
-        candidate[_name].value++;
+        candidates[_name].value++;
     } 
-     function getVotes(bytes32 name) public view returns(uint){
-        Candidate storage data=candidate[name];
+     function getVotes(bytes32 _name) public view returns(uint){
+        Candidate storage data=candidates[_name];
         return data.version==currentVersion?data.value:0;
     }
     function resetVotes() public{
         currentVersion++;
     }
+
 
 }
